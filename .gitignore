@@ -1,5 +1,8 @@
-node_modules/
+__pycache__/
+*.pyc
 .env
-.env.local
-.vercel/
-dist/
+data/*.db
+data/*.db-shm
+data/*.db-wal
+.DS_Store
+Thumbs.db

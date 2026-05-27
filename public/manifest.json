@@ -1,51 +1,14 @@
 {
   "name": "장기재고 소진계획 관리 시스템",
   "short_name": "장기재고관리",
-  "description": "장기재고 소진계획 관리 및 실적 비교 분석 시스템",
+  "description": "장기재고 소진계획 관리 및 실적 비교 분석",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1a202c",
   "theme_color": "#1a56db",
-  "orientation": "any",
   "lang": "ko",
   "icons": [
-    {
-      "src": "/icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/icons/screenshot-wide.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "대시보드 화면"
-    }
-  ],
-  "categories": ["business", "productivity"],
-  "shortcuts": [
-    {
-      "name": "대시보드",
-      "short_name": "대시보드",
-      "description": "장기재고 현황 대시보드",
-      "url": "/?page=dashboard",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "소진계획 입력",
-      "short_name": "계획입력",
-      "description": "소진계획 입력 화면",
-      "url": "/?page=plans",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
-    }
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 }
