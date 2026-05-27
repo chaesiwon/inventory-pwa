@@ -92,8 +92,7 @@ const diffStr = (cur,prv,isAmt=true) => {
   return `<span class="${cls}">${arrow} ${val} ${pct}</span>`;
 };
 
-async function api(path, opts={}) {
-  // localStorage에 저장된 인증 정보를 헤더로 전송 (세션 쿠키 백업)
+async function api(path, opts={}, _retry=0) {
   const authUser = _getAuthUser();
   const baseHeaders = {'Content-Type':'application/json'};
   if(authUser) {
@@ -101,10 +100,24 @@ async function api(path, opts={}) {
     baseHeaders['X-Auth-Token'] = authUser.token || '';
   }
   const mergedOpts = {...opts, headers:{...baseHeaders, ...(opts.headers||{})}};
-  // API_BASE: 클라우드 배포 시 Render URL, 로컬 시 빈 문자열(상대경로)
-  const res = await fetch(API_BASE + '/api'+path, mergedOpts);
-  if(!res.ok){ const e=await res.json().catch(()=>({detail:res.statusText})); throw new Error(e.detail||'오류'); }
-  return res.json();
+  const url = (API_BASE||'') + '/api' + path;
+
+  try {
+    const res = await fetch(url, mergedOpts);
+    if(!res.ok){
+      const e = await res.json().catch(()=>({detail:res.statusText}));
+      throw new Error(e.detail || '오류');
+    }
+    return res.json();
+  } catch(err) {
+    // Render 슬립 상태 재시도 (타임아웃/네트워크 오류 시 1회 재시도)
+    if(_retry === 0 && (err.name==='TypeError' || err.message.includes('fetch'))){
+      toast('서버 연결 중... (최초 연결 시 30초 소요될 수 있습니다)', 'inf');
+      await new Promise(r=>setTimeout(r, 5000));
+      return api(path, opts, 1);
+    }
+    throw err;
+  }
 }
 
 function _getAuthUser() {
