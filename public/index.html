@@ -12,22 +12,20 @@
 <link rel="stylesheet" href="/css/style.css">
 
 <!--
-  ★★★ RENDER URL을 반드시 입력하세요 ★★★
-  1. Render에서 배포된 API 서버 URL을 복사하세요
-  2. 아래 '' 안에 붙여넣으세요
-  예) window.API_SERVER = 'https://inventory-api-abc123.onrender.com';
-
-  ※ URL 끝에 / 붙이지 마세요
-  ※ 이 값이 비어있으면 로그인/업로드가 동작하지 않습니다
+==============================================
+  ★ 반드시 수정 필요 ★
+  Render 배포 후 아래 URL을 실제 주소로 교체하세요.
+  예) https://inventory-api-abc123.onrender.com
+  URL 끝에 / 붙이지 마세요.
+==============================================
 -->
 <script>
-  // ↓↓↓ 아래 '' 안에 Render URL을 입력하세요 ↓↓↓
-  window.API_SERVER = '';
-  // ↑↑↑ 예시: 'https://inventory-api-xxxx.onrender.com' ↑↑↑
+  window.RENDER_URL = 'https://RENDER_URL_HERE.onrender.com';
 </script>
 </head>
 <body>
 
+<!-- 로그인 화면 -->
 <div id="login-screen">
   <div class="login-box">
     <div class="login-logo">🏭</div>
@@ -44,15 +42,10 @@
     <button class="btn btn-primary btn-full" id="login-btn">로그인</button>
     <p id="login-err" class="error-msg"></p>
     <p class="login-hint">기본 계정: admin / admin1234</p>
-    <div id="api-status" style="font-size:11px;color:#9ca3af;margin-top:8px;min-height:16px"></div>
-    <div id="api-warn" style="display:none;font-size:11px;background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;padding:8px;margin-top:8px;color:#92400e;line-height:1.5">
-      ⚠️ <b>API 서버 URL이 설정되지 않았습니다.</b><br>
-      index.html의 <code>window.API_SERVER</code>에<br>
-      Render URL을 입력해야 합니다.
-    </div>
   </div>
 </div>
 
+<!-- 메인 앱 -->
 <div id="app" style="display:none">
   <nav class="sidebar">
     <div class="sidebar-logo">🏭 장기재고 관리</div>
@@ -71,22 +64,21 @@
           <option value="KRW">원</option>
           <option value="MN">백만원</option>
           <option value="HM">억원</option>
-        </select>
-      </div>
+        </select></div>
       <div class="unit-row"><label>중량</label>
         <select id="unit-weight" onchange="Units.save()">
           <option value="ton">ton</option>
           <option value="kg">kg</option>
-        </select>
-      </div>
+        </select></div>
     </div>
     <div class="sidebar-footer">
       <span id="sidebar-user"></span>
       <button class="btn btn-sm btn-outline" id="logout-btn">로그아웃</button>
     </div>
   </nav>
-
   <main class="main-content">
+
+    <!-- 대시보드 -->
     <div id="page-dashboard" class="page active">
       <div class="page-header">
         <h2>📊 대시보드</h2>
@@ -123,6 +115,7 @@
       </div>
     </div>
 
+    <!-- 재고현황 -->
     <div id="page-inventory" class="page hidden">
       <div class="page-header">
         <h2>📦 재고현황 <span class="ro-label">조회 전용</span></h2>
@@ -156,6 +149,7 @@
       </div>
     </div>
 
+    <!-- 소진계획 -->
     <div id="page-plans" class="page hidden">
       <div class="page-header">
         <h2>✏️ 소진계획 입력</h2>
@@ -171,14 +165,13 @@
         <button class="tab-btn" data-tab="registered">✅ 등록 완료</button>
         <button class="tab-btn" data-tab="bulk">📋 일괄 입력</button>
       </div>
-
       <div id="tab-noplan" class="tab-content">
         <div class="card search-card">
           <div class="filter-grid">
             <div><label>기준일</label><select id="noplan-ref" class="select-full"><option value="">최신</option></select></div>
             <div><label>공장</label><select id="noplan-fac" class="select-full"><option value="">전체</option><option>임실공장</option><option>수원공장</option></select></div>
             <div><label>품명</label><input id="noplan-iname" class="input-full" placeholder="검색"></div>
-            <div><label>원가중심점</label><input id="noplan-cc" class="input-full" placeholder="조직명 검색"></div>
+            <div><label>원가중심점</label><input id="noplan-cc" class="input-full" placeholder="검색"></div>
             <div><label>LOT NO</label><input id="noplan-lot" class="input-full" placeholder="검색"></div>
             <div style="display:flex;align-items:flex-end"><button class="btn btn-primary btn-sm" id="noplan-search-btn">검색</button></div>
           </div>
@@ -192,7 +185,6 @@
           <div class="pagination" id="noplan-page"></div>
         </div>
       </div>
-
       <div id="tab-registered" class="tab-content hidden">
         <div class="card search-card">
           <div class="filter-grid">
@@ -201,7 +193,7 @@
             <div><label>담당부서</label><select id="plan-dept" class="select-full"><option value="">전체</option><option>영업</option><option>생산</option><option>구매</option></select></div>
             <div><label>소진계획방안</label><select id="plan-type" class="select-full"><option value="">전체</option><option>생산투입</option><option>전환 판매</option><option>폐기</option><option>기타</option></select></div>
             <div><label>LOT NO</label><input id="plan-lot" class="input-full" placeholder="검색"></div>
-            <div><label>원가중심점</label><input id="plan-cc" class="input-full" placeholder="조직명 검색"></div>
+            <div><label>원가중심점</label><input id="plan-cc" class="input-full" placeholder="검색"></div>
           </div>
         </div>
         <div class="card">
@@ -215,7 +207,6 @@
           <div class="pagination" id="plan-page"></div>
         </div>
       </div>
-
       <div id="tab-bulk" class="tab-content hidden">
         <div class="card">
           <div class="card-title">📋 일괄 입력</div>
@@ -231,10 +222,10 @@
                 <input id="bulk-date" type="date" class="input-full"></div>
             </div>
             <div class="form-group"><label>세부계획</label>
-              <textarea id="bulk-detail" class="textarea-full" rows="2" placeholder="공통 세부계획 (선택)"></textarea></div>
+              <textarea id="bulk-detail" class="textarea-full" rows="2"></textarea></div>
             <div class="form-group">
               <label>LOT NO 목록 <span class="req">*</span> <small style="color:#888">한 줄에 하나씩</small></label>
-              <textarea id="bulk-lots" class="textarea-full" rows="5" placeholder="ST2502000001&#10;ST2502000002"></textarea>
+              <textarea id="bulk-lots" class="textarea-full" rows="5"></textarea>
             </div>
             <div style="display:flex;justify-content:flex-end;gap:8px">
               <button class="btn btn-outline" id="bulk-clear-btn">초기화</button>
@@ -266,6 +257,7 @@
       </div>
     </div>
 
+    <!-- 계획/실적 비교 -->
     <div id="page-compare" class="page hidden">
       <div class="page-header">
         <h2>📈 계획/실적 비교</h2>
@@ -308,6 +300,7 @@
       </div>
     </div>
 
+    <!-- 파일 업로드 -->
     <div id="page-upload" class="page hidden">
       <div class="page-header"><h2>📤 파일 업로드</h2></div>
       <div class="card" style="max-width:700px">
@@ -337,6 +330,7 @@
       </div>
     </div>
 
+    <!-- 사용자 관리 -->
     <div id="page-users" class="page hidden">
       <div class="page-header">
         <h2>👥 사용자 관리</h2>
@@ -349,10 +343,11 @@
         </tr></thead><tbody id="users-tbody"></tbody></table></div>
       </div>
     </div>
+
   </main>
 </div>
 
-<!-- 모달들 -->
+<!-- 소진계획 모달 -->
 <div id="modal" class="modal-bg hidden">
   <div class="modal-box">
     <div class="modal-head"><h3>소진계획 입력</h3><button id="modal-close-btn">✕</button></div>
@@ -378,9 +373,10 @@
   </div>
 </div>
 
+<!-- 실적수정 모달 -->
 <div id="amodal" class="modal-bg hidden">
   <div class="modal-box" style="max-width:360px">
-    <div class="modal-head"><h3>실적유형 수정</h3><button id="amodal-close-btn">✕</button></div>
+    <div class="modal-head"><h3>소진실적 유형 수정</h3><button id="amodal-close-btn">✕</button></div>
     <div class="modal-body">
       <div class="form-group"><label>실적유형</label>
         <select id="af-type" class="select-full"><option>생산투입</option><option>전환 판매</option><option>폐기</option><option>기타</option></select></div>
@@ -392,6 +388,7 @@
   </div>
 </div>
 
+<!-- 사용자 모달 -->
 <div id="umodal" class="modal-bg hidden">
   <div class="modal-box" style="max-width:500px">
     <div class="modal-head"><h3 id="umodal-title">사용자 추가</h3><button id="umodal-close-btn">✕</button></div>
@@ -418,6 +415,10 @@
 <div id="toast" class="toast hidden"></div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="/js/app.js"></script>
-<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});</script>
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
+</script>
 </body>
 </html>
