@@ -42,6 +42,7 @@
       }
 
       const kpi = await API.fetch(`/api/dashboard/kpi?ref_date=${refDate}&unit=${currentUnit}`);
+      const critical = await API.fetch(`/api/dashboard/critical-stock?ref_date=${refDate}&unit=${currentUnit}`);
 
       const refDateOptions = refDates.map(
         (rd) => `<option value="${rd}" ${rd === refDate ? 'selected' : ''}>${FMT.date(rd)}</option>`
@@ -61,6 +62,15 @@
               </select>
             </label>
           </div>
+        </div>
+
+        <div class="critical-banner">
+          <span class="badge-critical" style="font-size:13px; padding:4px 12px">⚠ 7개월이상 집중관리</span>
+          <span class="critical-banner-text">
+            ${Number(critical.amount).toFixed(2)}${FMT.unitLabel(currentUnit)}
+            · ${FMT.weight(critical.weight_ton)} · ${FMT.count(critical.count)}
+            — 7개월 이상 장기화된 재고는 우선적으로 소진계획을 검토해야 합니다.
+          </span>
         </div>
 
         <div class="kpi-grid">
@@ -111,6 +121,7 @@
         </div>
 
         <div id="top20-section"></div>
+        <div id="plan-type-section"></div>
         <div id="cost-center-section"></div>
       `;
 
@@ -123,6 +134,7 @@
       });
 
       loadTop20(refDate);
+      loadPlanTypeSummary(refDate);
       loadCostCenterSummary(refDate);
     } catch (err) {
       root.innerHTML = `<div class="error-state">대시보드 오류: ${err.message}</div>`;
@@ -136,11 +148,12 @@
     try {
       const data = await API.fetch(`/api/dashboard/top20?ref_date=${refDate}`);
       const rows = (data.items || []).map((it, i) => `
-        <tr>
+        <tr class="${it.months_label === '7개월이상' ? 'row-critical' : ''}">
           <td>${i + 1}</td>
           <td>${it.factory || ''}</td>
           <td>${it.lot_no || ''}</td>
           <td>${it.item_name || ''}</td>
+          <td>${it.months_label === '7개월이상' ? '<span class="badge-critical">⚠ 7개월이상</span>' : (it.months_label || '')}</td>
           <td class="num">${Number(it.amount).toLocaleString('ko-KR', { maximumFractionDigits: 0 })}원</td>
           <td>${it.plan_type || '-'}</td>
           <td class="${it.is_completed ? 'status-ok' : 'status-bad'}">${it.is_completed ? '조치' : '미조치'}</td>
@@ -148,9 +161,10 @@
       `).join('');
       el.innerHTML = `
         <h3 class="section-title">고액 상위 20건 (저장품 제외)</h3>
+        <p class="hint">7개월이상 장기재고는 빨간 배지로 집중관리 표시됩니다.</p>
         <table class="data-table">
-          <thead><tr><th>#</th><th>공장</th><th>LOT NO</th><th>품명</th><th>금액</th><th>계획유형</th><th>조치여부</th></tr></thead>
-          <tbody>${rows || '<tr><td colspan="7">데이터 없음</td></tr>'}</tbody>
+          <thead><tr><th>#</th><th>공장</th><th>LOT NO</th><th>품명</th><th>개월</th><th>금액</th><th>계획유형</th><th>조치여부</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="8">데이터 없음</td></tr>'}</tbody>
         </table>
       `;
     } catch (err) {
@@ -182,6 +196,46 @@
       `;
     } catch (err) {
       el.innerHTML = `<div class="error-state">원가중심점 요약 오류: ${err.message}</div>`;
+    }
+  }
+
+  async function loadPlanTypeSummary(refDate) {
+    const el = document.getElementById('plan-type-section');
+    if (!el) return;
+    try {
+      const data = await API.fetch(`/api/dashboard/cost-center-plan-type-summary?ref_date=${refDate}&unit=${currentUnit}`);
+      const items = data.items || [];
+      const rows = items.map((it) => `
+        <tr>
+          <td>${it.cc_name}</td>
+          <td>${it.plan_type}</td>
+          <td class="num">${it.plan_count}</td>
+          <td class="num">${Number(it.plan_weight).toFixed(1)} ton</td>
+          <td class="num">${Number(it.plan_amount).toFixed(2)}${FMT.unitLabel(currentUnit)}</td>
+          <td class="num">${it.actual_count}</td>
+          <td class="num">${Number(it.actual_weight).toFixed(1)} ton</td>
+          <td class="num">${Number(it.actual_amount).toFixed(2)}${FMT.unitLabel(currentUnit)}</td>
+        </tr>
+      `).join('');
+      el.innerHTML = `
+        <h3 class="section-title">원가중심점별 소진계획방안 유형별 실적 (저장품 제외)</h3>
+        <p class="hint">계획 기준(건수·중량·금액)과 실적 기준(건수·중량·금액)을 함께 비교합니다. 실적금액은 LOT단가×실적중량 방식으로 산출됩니다.</p>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th rowspan="1">원가중심점</th><th>소진계획방안</th>
+              <th colspan="3" style="text-align:center">계획 기준</th>
+              <th colspan="3" style="text-align:center">실적 기준</th>
+            </tr>
+          </thead>
+          <thead>
+            <tr><th></th><th></th><th>건수</th><th>중량</th><th>금액</th><th>건수</th><th>중량</th><th>금액</th></tr>
+          </thead>
+          <tbody>${rows || '<tr><td colspan="8">데이터 없음</td></tr>'}</tbody>
+        </table>
+      `;
+    } catch (err) {
+      el.innerHTML = `<div class="error-state">소진계획방안 유형별 실적 로드 오류: ${err.message}</div>`;
     }
   }
 

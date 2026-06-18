@@ -39,6 +39,7 @@ body {
 }
 .topbar h1 { font-size: 17px; margin: 0; }
 .topbar-right { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+.role-badge { font-style: normal; font-size: 10px; background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
 
 /* ── 탭 ── */
 .tabs { display: flex; gap: 4px; background: white; padding: 0 16px; border-bottom: 1px solid var(--mgray); }
@@ -110,3 +111,40 @@ main#main-content { padding: 24px; max-width: 1280px; margin: 0 auto; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 
 .action-bar { margin: 16px 0; }
+
+/* ── 7개월이상 집중관리 강조 ── */
+.badge-critical {
+  background: #C1001B; color: white; font-size: 11px; font-weight: bold;
+  padding: 2px 8px; border-radius: 10px; white-space: nowrap;
+}
+tr.row-critical { background: #FFF5F5; }
+tr.row-critical:hover { background: #FFE8E8; }
+.kpi-card.is-critical { box-shadow: 0 0 0 2px #C1001B inset; }
+
+/* ── 일괄 입력 액션바 ── */
+.bulk-action-bar {
+  display: flex; align-items: center; gap: 8px; margin: 12px 0;
+  background: white; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--mgray);
+}
+
+.critical-banner {
+  display: flex; align-items: center; gap: 12px;
+  background: #FFF0F0; border: 1px solid var(--red); border-radius: 8px;
+  padding: 10px 16px; margin-bottom: 16px; font-size: 13px;
+}
+.critical-banner-text { color: var(--red); font-weight: 500; }
+
+/* ── 재고조회 화면: 필터바, 페이지네이션 ── */
+.filter-bar {
+  display: flex; flex-wrap: wrap; align-items: end; gap: 12px;
+  background: white; padding: 14px 16px; border-radius: 8px; border: 1px solid var(--mgray);
+  margin-bottom: 14px; font-size: 13px;
+}
+.filter-bar label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #777; }
+.filter-bar input, .filter-bar select { padding: 6px 8px; border: 1px solid var(--mgray); border-radius: 5px; font-size: 13px; }
+.filter-bar button { align-self: end; }
+
+.pagination {
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  margin: 16px 0; font-size: 13px;
+}
