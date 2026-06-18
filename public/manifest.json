@@ -1,14 +1,9 @@
 {
   "name": "장기재고 소진계획 관리 시스템",
-  "short_name": "장기재고관리",
-  "description": "장기재고 소진계획 관리 및 실적 비교 분석",
+  "short_name": "재고관리",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1a202c",
-  "theme_color": "#1a56db",
-  "lang": "ko",
-  "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
-  ]
+  "background_color": "#0E2841",
+  "theme_color": "#0E2841",
+  "icons": []
 }

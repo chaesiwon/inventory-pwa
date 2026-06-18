@@ -1,21 +1,3 @@
 {
-  "version": 2,
-  "name": "inventory-pwa",
-  "outputDirectory": "public",
-  "routes": [
-    { "src": "/css/(.*)",     "dest": "/css/$1" },
-    { "src": "/js/(.*)",      "dest": "/js/$1" },
-    { "src": "/icons/(.*)",   "dest": "/icons/$1" },
-    { "src": "/manifest.json","dest": "/manifest.json" },
-    { "src": "/sw.js",        "dest": "/sw.js" },
-    { "src": "/(.*)",         "dest": "/index.html" }
-  ],
-  "headers": [
-    { "source": "/sw.js",
-      "headers": [
-        { "key": "Service-Worker-Allowed", "value": "/" },
-        { "key": "Cache-Control", "value": "no-cache" }
-      ]
-    }
-  ]
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
