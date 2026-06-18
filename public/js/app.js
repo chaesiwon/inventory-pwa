@@ -6,13 +6,17 @@
   async function init() {
     try {
       const me = await API.fetch('/api/auth/me');
-      if (me.logged_in) {
+      console.log('[AUTH] /api/auth/me 응답:', me);
+      if (me.logged_in && me.user) {
         currentUser = me.user;
         renderApp();
       } else {
+        currentUser = null;
         renderLogin();
       }
     } catch (err) {
+      console.error('[AUTH] /api/auth/me 오류:', err);
+      currentUser = null;
       renderLogin(err.message);
     }
   }
@@ -38,21 +42,32 @@
       const password = document.getElementById('login-password').value;
       try {
         const res = await API.fetch('/api/auth/login', { method: 'POST', body: { username, password } });
+        console.log('[AUTH] 로그인 응답:', res);
+        if (!res.user) {
+          renderLogin('로그인 응답에 사용자 정보가 없습니다. 서버 로그를 확인하세요.');
+          return;
+        }
         currentUser = res.user;
         renderApp();
       } catch (err) {
+        console.error('[AUTH] 로그인 오류:', err);
         renderLogin(err.message);
       }
     });
   }
 
   function renderApp() {
+    if (!currentUser) {
+      console.error('[APP] currentUser가 비어있어 로그인 화면으로 돌아갑니다.');
+      renderLogin('세션 정보를 불러오지 못했습니다. 다시 로그인해주세요.');
+      return;
+    }
     const app = document.getElementById('app');
     app.innerHTML = `
       <header class="topbar">
         <h1>장기재고 소진계획 관리</h1>
         <div class="topbar-right">
-          <span>${currentUser.display_name || currentUser.username}</span>
+          <span>${currentUser.display_name || currentUser.username || '사용자'}</span>
           <button id="logout-btn" class="btn-small">로그아웃</button>
         </div>
       </header>
