@@ -1,11 +1,14 @@
 /* plans.js - 소진계획 입력/관리 화면
-   탭: 미등록 재고(체크박스 다중선택 일괄입력 + 개별입력) / 등록 완료 / 엑셀 일괄 업로드
-   [요구사항] "재고를 선택해서 일괄입력" 기능 복원: 미등록 재고 탭에서 체크박스로 여러 LOT를
-   선택한 뒤 같은 계획정보(담당부서/사유/방안/기한/세부계획)를 한 번에 적용한다.
+   탭: 미등록 재고(검색필터 + 체크박스 다중선택 일괄입력 + 개별입력) / 등록 완료 / 엑셀 일괄 업로드
+
+   [요구사항 3] 검색 기능: 원가중심점/LOT NO/품명/품목코드 중 하나 이상을 부분일치로 검색.
+   여러 조건을 동시에 넣으면 AND로 결합되어 좁혀진다 (예: 원가중심점=PCT + 품명=Plug).
+   [요구사항 6] "개월"(장기재고 월령)과 "중량(ton)" 컬럼을 표에 추가.
 */
 (function () {
   let activeTab = 'no-plan';
   let selectedLots = new Set();
+  let searchFilters = { cost_center: '', lot_no: '', item_name: '', item_code: '' };
 
   function render() {
     const root = document.getElementById('plans-root');
@@ -36,23 +39,66 @@
     return label || '';
   }
 
+  function searchBar() {
+    return `
+      <div class="filter-bar">
+        <label>원가중심점 <input type="text" id="s-cost-center" placeholder="예: PCT (부분일치)" value="${searchFilters.cost_center}"></label>
+        <label>LOT NO <input type="text" id="s-lot-no" placeholder="LOT 검색" value="${searchFilters.lot_no}"></label>
+        <label>품명 <input type="text" id="s-item-name" placeholder="품명 검색" value="${searchFilters.item_name}"></label>
+        <label>품목코드 <input type="text" id="s-item-code" placeholder="품목코드 검색" value="${searchFilters.item_code}"></label>
+        <button id="s-search-btn" class="btn-primary">검색</button>
+        <button id="s-reset-btn" class="btn-secondary">초기화</button>
+      </div>
+    `;
+  }
+
+  function bindSearchBar(container, onSearch) {
+    container.querySelector('#s-search-btn').addEventListener('click', () => {
+      searchFilters = {
+        cost_center: container.querySelector('#s-cost-center').value.trim(),
+        lot_no: container.querySelector('#s-lot-no').value.trim(),
+        item_name: container.querySelector('#s-item-name').value.trim(),
+        item_code: container.querySelector('#s-item-code').value.trim(),
+      };
+      onSearch();
+    });
+    container.querySelector('#s-reset-btn').addEventListener('click', () => {
+      searchFilters = { cost_center: '', lot_no: '', item_name: '', item_code: '' };
+      onSearch();
+    });
+  }
+
+  function buildSearchQuery() {
+    const params = new URLSearchParams();
+    params.set('page_size', '200');
+    if (searchFilters.cost_center) params.set('cost_center', searchFilters.cost_center);
+    if (searchFilters.lot_no) params.set('lot_no', searchFilters.lot_no);
+    if (searchFilters.item_name) params.set('item_name', searchFilters.item_name);
+    if (searchFilters.item_code) params.set('item_code', searchFilters.item_code);
+    return params.toString();
+  }
+
   async function renderNoPlan() {
     const el = document.getElementById('plans-content');
     el.innerHTML = `<div class="loading">불러오는 중...</div>`;
     try {
-      const data = await API.fetch('/api/plans/no-plan?page_size=200');
+      const data = await API.fetch(`/api/plans/no-plan?${buildSearchQuery()}`);
       const rows = (data.items || []).map((it) => `
         <tr data-lot="${it.lot_no}" class="${it.months_label === '7개월이상' ? 'row-critical' : ''}">
           <td><input type="checkbox" class="row-check" value="${it.lot_no}"></td>
           <td>${it.factory || ''}</td>
           <td>${it.lot_no}</td>
+          <td>${it.item_code || ''}</td>
           <td>${it.item_name || ''}</td>
+          <td>${it.cc_name || '-'}</td>
+          <td class="num">${Number(it.weight_ton).toFixed(2)} ton</td>
           <td>${monthsBadge(it.months_label)}</td>
           <td class="num">${Number(it.amount).toLocaleString('ko-KR')}원</td>
           <td><button class="btn-small btn-plan-input">개별입력</button></td>
         </tr>
       `).join('');
       el.innerHTML = `
+        ${searchBar()}
         <p class="hint">총 ${data.total}건의 미등록 재고가 있습니다. 체크박스로 여러 건을 선택하면 같은 계획정보를 한 번에 입력할 수 있습니다.</p>
         <div class="bulk-action-bar">
           <button id="select-all" class="btn-secondary">전체 선택</button>
@@ -61,11 +107,13 @@
           <button id="bulk-input-btn" class="btn-primary" disabled>선택 항목 일괄입력</button>
         </div>
         <table class="data-table">
-          <thead><tr><th></th><th>공장</th><th>LOT NO</th><th>품명</th><th>개월</th><th>금액</th><th>액션</th></tr></thead>
-          <tbody>${rows || '<tr><td colspan="7">모든 재고에 계획이 등록되어 있습니다.</td></tr>'}</tbody>
+          <thead><tr><th></th><th>공장</th><th>LOT NO</th><th>품목코드</th><th>품명</th><th>원가중심점</th><th>중량</th><th>개월</th><th>금액</th><th>액션</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="10">조건에 맞는 미등록 재고가 없습니다.</td></tr>'}</tbody>
         </table>
         <div id="plan-modal"></div>
       `;
+
+      bindSearchBar(el, renderNoPlan);
 
       const updateSelectedCount = () => {
         document.getElementById('selected-count').textContent = `${selectedLots.size}건 선택됨`;
@@ -109,10 +157,13 @@
     const el = document.getElementById('plans-content');
     el.innerHTML = `<div class="loading">불러오는 중...</div>`;
     try {
-      const data = await API.fetch('/api/plans?page_size=200');
+      const data = await API.fetch(`/api/plans?${buildSearchQuery()}`);
       const rows = (data.items || []).map((it) => `
         <tr class="${it.months_label === '7개월이상' ? 'row-critical' : ''}">
           <td>${it.lot_no}</td>
+          <td>${it.item_name || ''}</td>
+          <td>${it.cc_name || '-'}</td>
+          <td class="num">${Number(it.weight_ton).toFixed(2)} ton</td>
           <td>${it.dept || ''}</td>
           <td>${it.plan_type || ''}</td>
           <td>${FMT.date(it.plan_date)}</td>
@@ -121,13 +172,15 @@
         </tr>
       `).join('');
       el.innerHTML = `
+        ${searchBar()}
         <p class="hint">총 ${data.total}건 등록됨.
           <a href="#" id="download-template">템플릿 다운로드</a></p>
         <table class="data-table">
-          <thead><tr><th>LOT NO</th><th>담당부서</th><th>소진계획방안</th><th>계획기한</th><th>개월</th><th>세부계획</th></tr></thead>
-          <tbody>${rows || '<tr><td colspan="6">등록된 계획 없음</td></tr>'}</tbody>
+          <thead><tr><th>LOT NO</th><th>품명</th><th>원가중심점</th><th>중량</th><th>담당부서</th><th>소진계획방안</th><th>계획기한</th><th>개월</th><th>세부계획</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="9">조건에 맞는 등록된 계획이 없습니다.</td></tr>'}</tbody>
         </table>
       `;
+      bindSearchBar(el, renderRegistered);
       document.getElementById('download-template').addEventListener('click', async (e) => {
         e.preventDefault();
         await API.download('/api/plans/export-template', '소진계획입력템플릿.xlsx');
@@ -141,7 +194,7 @@
     const el = document.getElementById('plans-content');
     el.innerHTML = `
       <p class="hint">템플릿을 다운로드하여 작성한 뒤 업로드하면, LOT NO 기준으로 일괄 등록(upsert)됩니다.
-      여러 건을 화면에서 직접 선택해 입력하려면 "미등록 재고" 탭을 이용하세요.</p>
+      여러 건을 화면에서 검색해 선택 입력하려면 "미등록 재고" 탭을 이용하세요.</p>
       <button id="dl-template-bulk" class="btn-secondary">템플릿 다운로드</button>
       <div id="bulk-drop" class="drop-zone" style="margin-top:16px">
         <p>여기에 작성된 엑셀 파일을 끌어다 놓으세요</p>

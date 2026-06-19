@@ -9,7 +9,7 @@
 
   const ALL_TABS = [
     { id: 'dashboard', label: '대시보드', roles: ['admin', 'user'] },
-    { id: 'inventory', label: '장기재고현황 조회', roles: ['admin'] },
+    { id: 'inventory', label: '장기재고현황 조회', roles: ['admin', 'user'] },
     { id: 'upload',    label: '파일 업로드', roles: ['admin'] },
     { id: 'plans',     label: '소진계획 입력', roles: ['admin', 'user'] },
     { id: 'compare',   label: '계획/실적 비교', roles: ['admin', 'user'] },

@@ -1,13 +1,16 @@
 /* dashboard.js - 대시보드 화면
    요구사항 반영:
-   - 첫 줄 KPI 5개(총장기재고/당월소진예정/당월계획분미조치/소진완료/소진금액전월대비)에
-     금액·중량·건수·전월대비금액을 모두 표시
-   - 둘째 줄 중복 카드(총금액/조치금액/소진금액 비교카드) 완전 제거
-   - 금액 표기 단위(원/백만원/억원) 사용자 선택 가능, 기본값 억원
+   - 첫 줄 KPI 5개에 금액·중량·건수·전월대비금액을 모두 표시
+   - 둘째 줄 중복 카드 제거
+   - 금액 표기 단위(원/백만원/억원) 선택 가능, 기본값 억원
+   - [신규] 공장(전체/임실공장/수원공장) 별, 원가중심점(전체/SMLS압연팀/PCT인발팀 등) 별로
+     KPI/TOP20/원가중심점요약/소진계획방안실적을 모두 필터링해서 조회 가능
 */
 (function () {
   let currentUnit = 'HM'; // 기본 표기단위: 억원
   let currentRefDate = null;
+  let currentFactory = '';
+  let currentCostCenter = '';
 
   function kpiCard({ title, badgeColor, mainAmount, weight, count, prevAmount, sub }) {
     return `
@@ -23,6 +26,13 @@
         ${sub ? `<div class="kpi-note">${sub}</div>` : ''}
       </div>
     `;
+  }
+
+  function filterQuery() {
+    const params = new URLSearchParams();
+    if (currentFactory) params.set('factory', currentFactory);
+    if (currentCostCenter) params.set('cost_center', currentCostCenter);
+    return params.toString();
   }
 
   async function loadDashboard(refDate) {
@@ -41,11 +51,19 @@
         return;
       }
 
-      const kpi = await API.fetch(`/api/dashboard/kpi?ref_date=${refDate}&unit=${currentUnit}`);
-      const critical = await API.fetch(`/api/dashboard/critical-stock?ref_date=${refDate}&unit=${currentUnit}`);
+      const filterOpts = await API.fetch(`/api/inventory/filter-options?ref_date=${refDate}`);
+      const fq = filterQuery();
+      const kpi = await API.fetch(`/api/dashboard/kpi?ref_date=${refDate}&unit=${currentUnit}${fq ? '&' + fq : ''}`);
+      const critical = await API.fetch(`/api/dashboard/critical-stock?ref_date=${refDate}&unit=${currentUnit}${fq ? '&' + fq : ''}`);
 
       const refDateOptions = refDates.map(
         (rd) => `<option value="${rd}" ${rd === refDate ? 'selected' : ''}>${FMT.date(rd)}</option>`
+      ).join('');
+      const factoryOptions = `<option value="">전체</option>` + (filterOpts.factories || []).map(
+        (f) => `<option value="${f}" ${f === currentFactory ? 'selected' : ''}>${f}</option>`
+      ).join('');
+      const ccOptions = `<option value="">전체</option>` + (filterOpts.cost_centers || []).map(
+        (c) => `<option value="${c.name}" ${c.name === currentCostCenter ? 'selected' : ''}>${c.name}</option>`
       ).join('');
 
       root.innerHTML = `
@@ -53,6 +71,12 @@
           <div class="dash-controls">
             <label>기준일자
               <select id="ref-date-select">${refDateOptions}</select>
+            </label>
+            <label>공장
+              <select id="factory-select">${factoryOptions}</select>
+            </label>
+            <label>원가중심점
+              <select id="cc-select">${ccOptions}</select>
             </label>
             <label>금액단위
               <select id="unit-select">
@@ -109,15 +133,6 @@
             prevAmount: FMT.amount(kpi.completed.prev_amount),
             sub: 'LOT단가 × 실적중량',
           })}
-          ${kpiCard({
-            title: '소진금액 (전월대비)',
-            badgeColor: '#7C3AED',
-            mainAmount: FMT.amount(kpi.consumed_mom.amount),
-            weight: FMT.weight(kpi.consumed_mom.weight_ton),
-            count: FMT.count(kpi.consumed_mom.count),
-            prevAmount: FMT.amount(kpi.consumed_mom.prev_amount),
-            sub: '전월 LOT 대비 재고 감소분',
-          })}
         </div>
 
         <div id="top20-section"></div>
@@ -127,6 +142,14 @@
 
       document.getElementById('ref-date-select').addEventListener('change', (e) => {
         loadDashboard(e.target.value);
+      });
+      document.getElementById('factory-select').addEventListener('change', (e) => {
+        currentFactory = e.target.value;
+        loadDashboard(currentRefDate);
+      });
+      document.getElementById('cc-select').addEventListener('change', (e) => {
+        currentCostCenter = e.target.value;
+        loadDashboard(currentRefDate);
       });
       document.getElementById('unit-select').addEventListener('change', (e) => {
         currentUnit = e.target.value;
@@ -146,7 +169,8 @@
     const el = document.getElementById('top20-section');
     if (!el) return;
     try {
-      const data = await API.fetch(`/api/dashboard/top20?ref_date=${refDate}`);
+      const fq = filterQuery();
+      const data = await API.fetch(`/api/dashboard/top20?ref_date=${refDate}${fq ? '&' + fq : ''}`);
       const rows = (data.items || []).map((it, i) => `
         <tr class="${it.months_label === '7개월이상' ? 'row-critical' : ''}">
           <td>${i + 1}</td>
@@ -176,7 +200,8 @@
     const el = document.getElementById('cost-center-section');
     if (!el) return;
     try {
-      const data = await API.fetch(`/api/dashboard/cost-center-summary?ref_date=${refDate}&unit=${currentUnit}`);
+      const fq = currentFactory ? `&factory=${encodeURIComponent(currentFactory)}` : '';
+      const data = await API.fetch(`/api/dashboard/cost-center-summary?ref_date=${refDate}&unit=${currentUnit}${fq}`);
       const rows = (data.items || []).map((it) => `
         <tr>
           <td>${it.cc_name || '-'}</td>
@@ -203,7 +228,8 @@
     const el = document.getElementById('plan-type-section');
     if (!el) return;
     try {
-      const data = await API.fetch(`/api/dashboard/cost-center-plan-type-summary?ref_date=${refDate}&unit=${currentUnit}`);
+      const fq = currentFactory ? `&factory=${encodeURIComponent(currentFactory)}` : '';
+      const data = await API.fetch(`/api/dashboard/cost-center-plan-type-summary?ref_date=${refDate}&unit=${currentUnit}${fq}`);
       const items = data.items || [];
       const rows = items.map((it) => `
         <tr>
@@ -219,11 +245,12 @@
       `).join('');
       el.innerHTML = `
         <h3 class="section-title">원가중심점별 소진계획방안 유형별 실적 (저장품 제외)</h3>
-        <p class="hint">계획 기준(건수·중량·금액)과 실적 기준(건수·중량·금액)을 함께 비교합니다. 실적금액은 LOT단가×실적중량 방식으로 산출됩니다.</p>
+        <p class="hint">계획 기준(건수·중량·금액)과 실적 기준(건수·중량·금액)을 함께 비교합니다.
+        실적유형이 'Sales'로 시작하면 전환판매 실적, 'WIP'로 시작하면 생산투입 실적으로 집계됩니다.</p>
         <table class="data-table">
           <thead>
             <tr>
-              <th rowspan="1">원가중심점</th><th>소진계획방안</th>
+              <th>원가중심점</th><th>소진계획방안</th>
               <th colspan="3" style="text-align:center">계획 기준</th>
               <th colspan="3" style="text-align:center">실적 기준</th>
             </tr>
